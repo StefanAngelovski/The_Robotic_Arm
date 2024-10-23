@@ -1,93 +1,116 @@
-#include "BluetoothSerial.h" 
+#include "BluetoothSerial.h"
 #include <ESP32Servo.h>
+#include <Constants.h>
 
 // init Class:
-BluetoothSerial ESP_BT; 
+BluetoothSerial ESP_BT;
 
 // Parameters for Bluetooth interface
 int incoming;
 
-byte verticalServoPin = 26;
-byte horizontalServoPin = 33;
-byte gripperPin = 32;
-byte rotationalServoPin = 25;
+// pins for servos
+byte VERTICAL_SERVO_PIN   = 26;
+byte HORIZONTAL_SERVO_PIN = 33;
+byte GRIPPER_PIN          = 32;
+byte ROTATIONAL_SERVO_PIN = 25;
 
-
+// Servo objects
 Servo verticalServo;
 Servo horizontalServo;
 Servo gripperServo;
 Servo rotationalServo;
 
+// values for servos
+int  rotationalValue = ZERO_ROTATIONAL_SERVO;
+int  verticalValue   = MIN_VERTICAL_SERVO;
+int  horizontalValue = MAX_HORIZONTAL_SERVO;
+bool gripperState    = false;
 
-int i=0; //for rotational
-int j=0; //for vertical
-int g=180; //for horizontal
-bool gripperState = false;
-void setup() {
-  Serial.begin(9600);
-  ESP_BT.begin("Finki - Robotic arm");
-  pinMode(verticalServoPin, OUTPUT);
-  verticalServo.attach(verticalServoPin);
+void setup()
+{
+  // setup
+  Serial.begin(SERIAL_SPEED);
+  ESP_BT.begin(TITLE);
 
-  pinMode(horizontalServoPin ,OUTPUT);
-  horizontalServo.attach(horizontalServoPin);
+  // pin handling
+  pinMode(VERTICAL_SERVO_PIN, OUTPUT);
+  verticalServo.attach(VERTICAL_SERVO_PIN);
 
-  pinMode(gripperPin, OUTPUT);
-  gripperServo.attach(gripperPin);
+  pinMode(HORIZONTAL_SERVO_PIN, OUTPUT);
+  horizontalServo.attach(HORIZONTAL_SERVO_PIN);
 
-  pinMode(rotationalServoPin, OUTPUT);
-  rotationalServo.attach(rotationalServoPin);
+  pinMode(GRIPPER_PIN, OUTPUT);
+  gripperServo.attach(GRIPPER_PIN);
+
+  pinMode(ROTATIONAL_SERVO_PIN, OUTPUT);
+  rotationalServo.attach(ROTATIONAL_SERVO_PIN);
 }
 
-void loop() {
-  
+void loop()
+{
   // -------------------- Receive Bluetooth signal ----------------------
-  if (ESP_BT.available()) 
+  if (ESP_BT.available())
   {
-    incoming = ESP_BT.read(); //Read what we receive 
+    incoming = ESP_BT.read(); // Read what we receive
 
     // separate button ID from button value -> button ID is 10, 20, 30, etc, value is 1 or 0
-    int button = floor(incoming / 10);
-    int value = incoming % 10;
+    int button = floor(incoming / BUTTON_ID);
+    int value  = incoming % BUTTON_ID;
     delay(50);
-    switch (button) {
-      case 1:  
-        Serial.print("Left");
-        if(i!=180)rotationalServo.write(i+=10);
-        break;
-      case 2:  
-        Serial.print("Right");
-        if(i!=50)rotationalServo.write(i-=10);
-        break;
-      case 3:  
-        Serial.print("Up");
-        if(j!=0)verticalServo.write(j-=10);
-        break;
-      case 4:
-        Serial.println("Down");
-        if(j!=180)verticalServo.write(j+=10);
-        break;
-      case 5:
-        Serial.println("Gripper");
-        if(gripperState == false){
-          gripperServo.write(180);
-          gripperState = true;
-          Serial.println("False");
-        }
-        else {
-          gripperServo.write(160);
-          gripperState = false;
-          Serial.println("True");
-        }
-        break;
-      case 6:
-        Serial.println("Forward");
-        horizontalServo.write(g+=10);
-        break;
-      case 7:
-        Serial.println("Backward");
-        horizontalServo.write(g-=10);
-        break;
+
+    switch (button)
+    {
+    case LEFT:
+      Serial.print("Left");
+      if (rotationalValue != MAX_ROTATIONAL_SERVO)
+      {
+        rotationalServo.write(rotationalValue += ROTATIONAL_STEP);
+      }
+      break;
+    case RIGHT:
+      Serial.print("Right");
+      if (rotationalValue != ZERO_ROTATIONAL_SERVO)
+      {
+          rotationalServo.write(rotationalValue -= ROTATIONAL_STEP);
+      }
+      break;
+    case UP:
+      Serial.print("Up");
+      if (verticalValue != MIN_VERTICAL_SERVO)
+      {
+        verticalServo.write(verticalValue -= VERTICAL_STEP);
+      }
+      break;
+    case DOWN:
+      Serial.println("Down");
+      if (verticalValue != MAX_VERTICAL_SERVO)
+      {
+        verticalServo.write(verticalValue += VERTICAL_STEP);
+      }
+      break;
+    case GRIPPER:
+      Serial.println("Gripper");
+      if (gripperState == false)
+      {
+        gripperServo.write(MAX_GRIPPER_SERVO);
+        gripperState = true;
+        Serial.println(FALSE);
+      }
+      else
+      {
+        gripperServo.write(MIN_GRIPPER_SERVO);
+        gripperState = false;
+        Serial.println(TRUE);
+      }
+      break;
+    case FORWARD:
+      Serial.println("Forward");
+      horizontalServo.write(horizontalValue += HORIZONTAL_STEP);
+      break;
+    case BACKWARD:
+      Serial.println("Backward");
+      horizontalServo.write(horizontalValue -= HORIZONTAL_STEP);
+      break;
     }
   }
 }
